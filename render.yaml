@@ -1,13 +1,13 @@
 services:
   - type: web
     name: jap-frontend
-    env: static
+    runtime: static
     buildCommand: npm install && npm run build
-    publishDir: dist
+    staticPublishPath: dist
     autoDeploy: true
     envVars:
       - key: VITE_API_URL
-        value: https://jap-backend-qcmz.onrender.com/api # Replace with your actual backend URL
+        value: https://jap-backend-qcmz.onrender.com/api
     routes:
       - type: rewrite
         source: /*
