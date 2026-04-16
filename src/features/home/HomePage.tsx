@@ -2,9 +2,30 @@ import Navbar from '../../components/Navbar';
 import SearchBar from '../../components/SearchBar';
 import CategoryScroll from '../../components/CategoryScroll';
 import RestaurantCard from '../../components/RestaurantCard';
-import { restaurants } from '../../utils/mockData';
+import { useGetRestaurantsQuery } from '../../redux/api/restaurantApi';
+
+const SkeletonCard = () => (
+  <div style={{
+    backgroundColor: '#eee',
+    borderRadius: 'var(--radius-lg)',
+    height: '320px',
+    width: '100%',
+    animation: 'pulse 1.5s infinite ease-in-out'
+  }}>
+    <style>{`
+      @keyframes pulse {
+        0% { opacity: 0.6; }
+        50% { opacity: 1; }
+        100% { opacity: 0.6; }
+      }
+    `}</style>
+  </div>
+);
+
 
 export default function HomePage() {
+  const { data: restaurants, isLoading, isError } = useGetRestaurantsQuery();
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
@@ -40,9 +61,20 @@ export default function HomePage() {
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-            {restaurants.map(restaurant => (
-              <RestaurantCard key={restaurant.id} restaurant={restaurant} />
-            ))}
+            {isLoading ? (
+              // Loading State: 4 Skeleton cards
+              [1, 2, 3, 4].map((i) => <SkeletonCard key={i} />)
+            ) : isError ? (
+              // Error State
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: 'var(--primary-red)' }}>
+                <p>Failed to load restaurants. Please try again later.</p>
+              </div>
+            ) : (
+              // Success State
+              restaurants?.map(restaurant => (
+                <RestaurantCard key={restaurant._id ?? restaurant.id ?? restaurant.name} restaurant={restaurant} />
+              ))
+            )}
           </div>
         </div>
       </main>
