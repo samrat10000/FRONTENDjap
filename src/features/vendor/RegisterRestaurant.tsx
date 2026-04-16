@@ -13,7 +13,7 @@ import {
   Tag,
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
-import { useCreateRestaurantMutation } from '../../redux/api/vendorApi';
+import { useCreateRestaurantMutation, useUploadImageMutation } from '../../redux/api/vendorApi';
 
 const CATEGORIES = ['Sushi', 'Ramen', 'Takoyaki', 'Matcha', 'Bento', 'Sake', 'Tempura'];
 const PRICE_RANGES = ['$', '$$', '$$$', '$$$$'] as const;
@@ -56,6 +56,7 @@ function Field({
 export default function RegisterRestaurant() {
   const navigate = useNavigate();
   const [createRestaurant, { isLoading }] = useCreateRestaurantMutation();
+  const [uploadImage, { isLoading: isUploading }] = useUploadImageMutation();
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -72,6 +73,34 @@ export default function RegisterRestaurant() {
     deliveryAvailable: true,
     pickupAvailable: true,
   });
+  const [selectedFiles, setSelectedFiles] = useState<{
+    image: File | null;
+    coverImage: File | null;
+  }>({
+    image: null,
+    coverImage: null,
+  });
+
+  const handleFileUpload = async (field: 'image' | 'coverImage', folder: 'restaurants' | 'restaurant-covers') => {
+    const file = selectedFiles[field];
+
+    if (!file) {
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append('image', file);
+    payload.append('folder', folder);
+
+    try {
+      const result = await uploadImage(payload).unwrap();
+      setFormData((current) => ({ ...current, [field]: result.imageUrl }));
+      alert(`${field === 'image' ? 'Restaurant card image' : 'Restaurant cover image'} uploaded.`);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('Image upload failed. Please try again.');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,23 +276,55 @@ export default function RegisterRestaurant() {
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
-              <Field label="Card Image URL" icon={<ImageIcon size={16} />}>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  style={inputStyle}
-                />
+              <Field label="Card Image" icon={<ImageIcon size={16} />}>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setSelectedFiles({ ...selectedFiles, image: e.target.files?.[0] ?? null })}
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    disabled={!selectedFiles.image || isUploading}
+                    onClick={() => handleFileUpload('image', 'restaurants')}
+                    style={secondaryButtonStyle}
+                  >
+                    Upload Card Image
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Or paste image URL"
+                    value={formData.image}
+                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
               </Field>
-              <Field label="Cover Image URL" icon={<ImageIcon size={16} />}>
-                <input
-                  type="text"
-                  placeholder="https://images.unsplash.com/..."
-                  value={formData.coverImage}
-                  onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                  style={inputStyle}
-                />
+              <Field label="Cover Image" icon={<ImageIcon size={16} />}>
+                <div style={{ display: 'grid', gap: '0.75rem' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setSelectedFiles({ ...selectedFiles, coverImage: e.target.files?.[0] ?? null })}
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    disabled={!selectedFiles.coverImage || isUploading}
+                    onClick={() => handleFileUpload('coverImage', 'restaurant-covers')}
+                    style={secondaryButtonStyle}
+                  >
+                    Upload Cover Image
+                  </button>
+                  <input
+                    type="text"
+                    placeholder="Or paste image URL"
+                    value={formData.coverImage}
+                    onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
               </Field>
             </div>
 
@@ -304,7 +365,7 @@ export default function RegisterRestaurant() {
                 opacity: isLoading ? 0.7 : 1,
               }}
             >
-              {isLoading ? <Loader2 size={20} className="animate-spin" /> : 'Register Restaurant'}
+              {isLoading || isUploading ? <Loader2 size={20} className="animate-spin" /> : 'Register Restaurant'}
             </button>
           </form>
         </div>
@@ -312,3 +373,11 @@ export default function RegisterRestaurant() {
     </div>
   );
 }
+
+const secondaryButtonStyle: CSSProperties = {
+  border: '1px solid var(--border-color)',
+  padding: '0.8rem 1rem',
+  borderRadius: 'var(--radius-md)',
+  fontWeight: 600,
+  backgroundColor: 'var(--card-bg)',
+};

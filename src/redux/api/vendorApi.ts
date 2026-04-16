@@ -15,6 +15,13 @@ export const vendorApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['VendorRestaurants'],
     }),
+    uploadImage: builder.mutation<{ imageUrl: string; filename: string; message: string }, FormData>({
+      query: (body) => ({
+        url: '/uploads',
+        method: 'POST',
+        body,
+      }),
+    }),
     updateRestaurant: builder.mutation<Restaurant, { restaurantId: string; body: Partial<Restaurant> }>({
       query: ({ restaurantId, body }) => ({
         url: `/restaurants/${restaurantId}`,
@@ -55,6 +62,7 @@ export const vendorApi = baseApi.injectEndpoints({
 export const {
   useGetVendorRestaurantsQuery,
   useCreateRestaurantMutation,
+  useUploadImageMutation,
   useUpdateRestaurantMutation,
   useAddMenuItemMutation,
   useUpdateMenuItemMutation,

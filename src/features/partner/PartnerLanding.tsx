@@ -1,4 +1,5 @@
 import { Rocket, TrendingUp, Users, ShieldCheck, ChevronRight, Loader2 } from 'lucide-react';
+import Navbar from '../../components/Navbar';
 import '../../styles/partner.css';
 import partnerHero from '../../assets/partner_hero.png';
 import { useState } from 'react';
@@ -31,7 +32,7 @@ export default function PartnerLanding() {
 
   return (
     <div style={{ backgroundColor: '#fcfcfc' }}>
-      {/* <Navbar /> */}
+      <Navbar />
       
       {/* Hero Section */}
       <section 

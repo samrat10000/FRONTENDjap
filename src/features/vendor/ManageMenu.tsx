@@ -21,6 +21,7 @@ import {
   useDeleteMenuItemMutation,
   useUpdateMenuItemMutation,
   useUpdateRestaurantMutation,
+  useUploadImageMutation,
 } from '../../redux/api/vendorApi';
 import { useGetRestaurantByIdQuery, type MenuItem } from '../../redux/api/restaurantApi';
 type PriceRange = '$' | '$$' | '$$$' | '$$$$';
@@ -93,6 +94,7 @@ export default function ManageMenu() {
   const [updateMenuItem, { isLoading: isUpdatingItem }] = useUpdateMenuItemMutation();
   const [deleteMenuItem, { isLoading: isDeletingItem }] = useDeleteMenuItemMutation();
   const [updateRestaurant, { isLoading: isSavingRestaurant }] = useUpdateRestaurantMutation();
+  const [uploadImage, { isLoading: isUploadingImage }] = useUploadImageMutation();
 
   const [menuForm, setMenuForm] = useState(emptyMenuForm);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -110,6 +112,8 @@ export default function ManageMenu() {
     pickupAvailable: true,
     isActive: true,
   });
+  const [restaurantCoverFile, setRestaurantCoverFile] = useState<File | null>(null);
+  const [menuImageFile, setMenuImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (!restaurant) return;
@@ -206,6 +210,29 @@ export default function ManageMenu() {
     }
   };
 
+  const uploadSelectedImage = async (
+    file: File | null,
+    folder: string,
+    onSuccess: (imageUrl: string) => void
+  ) => {
+    if (!file) {
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append('image', file);
+    payload.append('folder', folder);
+
+    try {
+      const result = await uploadImage(payload).unwrap();
+      onSuccess(result.imageUrl);
+      alert('Image uploaded successfully.');
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      alert('Image upload failed.');
+    }
+  };
+
   const startEditingItem = (item: MenuItem) => {
     setEditingItemId(item._id ?? null);
     setMenuForm({
@@ -292,12 +319,32 @@ export default function ManageMenu() {
               onChange={(e) => setRestaurantForm({ ...restaurantForm, address: e.target.value })}
               style={inputStyle}
             />
-            <input
-              placeholder="Cover image URL"
-              value={restaurantForm.coverImage}
-              onChange={(e) => setRestaurantForm({ ...restaurantForm, coverImage: e.target.value })}
-              style={inputStyle}
-            />
+            <div style={{ display: 'grid', gap: '0.6rem' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setRestaurantCoverFile(e.target.files?.[0] ?? null)}
+                style={inputStyle}
+              />
+              <button
+                type="button"
+                disabled={!restaurantCoverFile || isUploadingImage}
+                onClick={() =>
+                  uploadSelectedImage(restaurantCoverFile, 'restaurant-covers', (imageUrl) =>
+                    setRestaurantForm({ ...restaurantForm, coverImage: imageUrl })
+                  )
+                }
+                style={secondaryButtonStyle}
+              >
+                Upload Cover Image
+              </button>
+              <input
+                placeholder="Cover image URL"
+                value={restaurantForm.coverImage}
+                onChange={(e) => setRestaurantForm({ ...restaurantForm, coverImage: e.target.value })}
+                style={inputStyle}
+              />
+            </div>
             <input
               placeholder="Cuisine tags"
               value={restaurantForm.cuisines}
@@ -458,13 +505,33 @@ export default function ManageMenu() {
                 />
               </Field>
 
-              <Field label="Image URL" icon={<ImageIcon size={14} />}>
-                <input
-                  placeholder="https://images.unsplash.com/..."
-                  value={menuForm.image}
-                  onChange={(e) => setMenuForm({ ...menuForm, image: e.target.value })}
-                  style={inputStyle}
-                />
+              <Field label="Dish Image" icon={<ImageIcon size={14} />}>
+                <div style={{ display: 'grid', gap: '0.6rem' }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setMenuImageFile(e.target.files?.[0] ?? null)}
+                    style={inputStyle}
+                  />
+                  <button
+                    type="button"
+                    disabled={!menuImageFile || isUploadingImage}
+                    onClick={() =>
+                      uploadSelectedImage(menuImageFile, 'menu-items', (imageUrl) =>
+                        setMenuForm({ ...menuForm, image: imageUrl })
+                      )
+                    }
+                    style={secondaryButtonStyle}
+                  >
+                    Upload Dish Image
+                  </button>
+                  <input
+                    placeholder="Or paste image URL"
+                    value={menuForm.image}
+                    onChange={(e) => setMenuForm({ ...menuForm, image: e.target.value })}
+                    style={inputStyle}
+                  />
+                </div>
               </Field>
 
               <div style={{ display: 'flex', gap: '1rem' }}>
@@ -510,7 +577,7 @@ export default function ManageMenu() {
 
               <button
                 type="submit"
-                disabled={isAdding || isUpdatingItem}
+                disabled={isAdding || isUpdatingItem || isUploadingImage}
                 style={{
                   backgroundColor: 'var(--primary-red)',
                   color: 'white',
@@ -522,10 +589,10 @@ export default function ManageMenu() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '0.5rem',
-                  cursor: isAdding || isUpdatingItem ? 'not-allowed' : 'pointer',
+                  cursor: isAdding || isUpdatingItem || isUploadingImage ? 'not-allowed' : 'pointer',
                 }}
               >
-                {isAdding || isUpdatingItem ? (
+                {isAdding || isUpdatingItem || isUploadingImage ? (
                   <Loader2 size={20} className="animate-spin" />
                 ) : editingItemId ? (
                   <>
@@ -619,3 +686,11 @@ export default function ManageMenu() {
     </div>
   );
 }
+
+const secondaryButtonStyle: CSSProperties = {
+  border: '1px solid var(--border-color)',
+  padding: '0.8rem',
+  borderRadius: 'var(--radius-sm)',
+  fontWeight: 600,
+  backgroundColor: 'var(--card-bg)',
+};
